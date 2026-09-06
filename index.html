@@ -1,0 +1,139 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Content Factory — ad creative without a shoot</title>
+<meta name="description" content="Three ad reels built with no camera, no studio, no actors. Made to be tested, not admired.">
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  :root{
+    --bg:#0c0c0e; --panel:#141418; --line:#26262c;
+    --ink:#f2f2f0; --dim:#8f8f98; --accent:#ff5c2b;
+  }
+  html{-webkit-text-size-adjust:100%}
+  body{
+    background:var(--bg); color:var(--ink);
+    font:400 17px/1.55 -apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;
+    padding:0 20px 72px;
+  }
+  .wrap{max-width:960px;margin:0 auto}
+  header{padding:64px 0 40px;border-bottom:1px solid var(--line)}
+  .kicker{
+    font-size:12px;letter-spacing:.16em;text-transform:uppercase;
+    color:var(--accent);font-weight:600;margin-bottom:18px;
+  }
+  h1{
+    font-size:clamp(30px,7vw,52px);line-height:1.08;
+    letter-spacing:-.025em;font-weight:700;max-width:16ch;
+  }
+  .lede{margin-top:20px;color:var(--dim);font-size:clamp(17px,2.4vw,20px);max-width:54ch}
+  .lede b{color:var(--ink);font-weight:600}
+
+  section{padding:44px 0;border-bottom:1px solid var(--line)}
+  h2{font-size:13px;letter-spacing:.16em;text-transform:uppercase;color:var(--dim);font-weight:600;margin-bottom:24px}
+
+  .reels{display:grid;gap:26px;grid-template-columns:1fr}
+  @media(min-width:700px){.reels{grid-template-columns:repeat(3,1fr)}}
+  figure{background:var(--panel);border:1px solid var(--line);border-radius:14px;overflow:hidden}
+  video{display:block;width:100%;aspect-ratio:9/16;object-fit:cover;background:#000}
+  figcaption{padding:14px 16px 16px}
+  .rn{font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:var(--accent);font-weight:600}
+  .rt{margin-top:5px;font-weight:600}
+  .rd{margin-top:4px;font-size:14px;color:var(--dim);line-height:1.45}
+
+  .facts{display:grid;gap:1px;background:var(--line);border:1px solid var(--line);border-radius:14px;overflow:hidden}
+  @media(min-width:640px){.facts{grid-template-columns:repeat(3,1fr)}}
+  .fact{background:var(--panel);padding:22px}
+  .fv{font-size:30px;font-weight:700;letter-spacing:-.02em}
+  .fl{margin-top:6px;font-size:14px;color:var(--dim);line-height:1.45}
+
+  ul{list-style:none;display:grid;gap:14px;max-width:64ch}
+  li{padding-left:26px;position:relative;color:var(--dim)}
+  li::before{content:"";position:absolute;left:6px;top:.62em;width:7px;height:7px;border-radius:50%;background:var(--accent)}
+  li b{color:var(--ink);font-weight:600}
+
+  .cta{padding:44px 0 0;border:0}
+  .cta p{color:var(--dim);max-width:56ch;margin-bottom:22px}
+  a.btn{
+    display:inline-block;background:var(--accent);color:#0c0c0e;
+    text-decoration:none;font-weight:700;padding:14px 26px;border-radius:9px;
+  }
+  a.btn:hover{filter:brightness(1.08)}
+  footer{margin-top:40px;font-size:13px;color:#5e5e66;line-height:1.6}
+  footer a{color:#5e5e66}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <div class="kicker">Content Factory</div>
+  <h1>Ad creative without a camera.</h1>
+  <p class="lede">Three reels below. No shoot, no studio, no actors, no stock footage.
+  Every frame was built from a script and rendered in house — which is why the
+  <b>second version of a video costs almost nothing to make</b>.</p>
+</header>
+
+<section>
+  <h2>The work</h2>
+  <div class="reels">
+    <figure>
+      <video src="reel1.mp4" poster="poster1.jpg" controls playsinline preload="none"></video>
+      <figcaption>
+        <div class="rn">Reel 01 · 0:27</div>
+        <div class="rt">Three materials, one frame</div>
+        <div class="rd">Layout carries the words, 3D carries the object, generated imagery carries the room.</div>
+      </figcaption>
+    </figure>
+    <figure>
+      <video src="reel2.mp4" poster="poster2.jpg" controls playsinline preload="none"></video>
+      <figcaption>
+        <div class="rn">Reel 02 · 0:32</div>
+        <div class="rt">No cuts, only zooms</div>
+        <div class="rd">Scenes stack on each other. The camera pushes through instead of cutting.</div>
+      </figcaption>
+    </figure>
+    <figure>
+      <video src="reel3.mp4" poster="poster3.jpg" controls playsinline preload="none"></video>
+      <figcaption>
+        <div class="rn">Reel 03 · 0:33</div>
+        <div class="rt">One canvas, many rooms</div>
+        <div class="rd">A single wide scene. The camera walks it, and the walk does the editing.</div>
+      </figcaption>
+    </figure>
+  </div>
+</section>
+
+<section>
+  <h2>Why the economics are different</h2>
+  <div class="facts">
+    <div class="fact"><div class="fv">25 / month</div><div class="fl">Videos a studio quotes 3–5 for, at a flat monthly rate.</div></div>
+    <div class="fact"><div class="fv">Same day</div><div class="fl">Price changed, offer changed, dates changed — edit the line, re-render tonight.</div></div>
+    <div class="fact"><div class="fv">Zero reshoots</div><div class="fl">Nothing was filmed, so nothing has to be filmed again.</div></div>
+  </div>
+</section>
+
+<section>
+  <h2>What that buys you</h2>
+  <ul>
+    <li><b>Volume is the point, not the bonus.</b> Creative testing dies at 3 videos a month. At 25 you find the winner instead of guessing at it.</li>
+    <li><b>Losing variants still ship.</b> A creative that lost the test is still a post, a story, a nurture email. It is not a write-off.</li>
+    <li><b>The floor is above zero.</b> If the ads underperform, you still hold 25 finished videos, the offers they tested, and a teardown of what your competitors are running.</li>
+  </ul>
+</section>
+
+<div class="cta">
+  <h2 style="border:0">Next step</h2>
+  <p>Send one product or one offer. I will build a reel on it at no cost, in your brand,
+  so you are judging real work instead of a deck.</p>
+  <p style="font-weight:600;color:#f2f2f0">Reply to the email that brought you here and name the product.</p>
+  <footer>
+    Content Factory · Almaty, Kazakhstan<br>
+    Reels on this page were produced end to end with no filming.
+  </footer>
+</div>
+
+</div>
+</body>
+</html>
