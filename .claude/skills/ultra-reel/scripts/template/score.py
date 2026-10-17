@@ -104,7 +104,7 @@ for n in range(1, 22):
                 if (n == 13 and t >= PL.TAPE_STOP) or (n == 21 and t >= PL.FINAL_STOP):
                     continue
                 if not speech_at(t, t + 0.08):
-                    drums.add(t, I.perc_blip(int(rng.choice(pent)), 0.06, 2.0), 0.18, p=rng.uniform(-0.6, 0.6))
+                    drums.add(t, I.perc_blip(int(rng.choice(pent)) - 12, 0.09, 1.0), 0.16, p=rng.uniform(-0.6, 0.6))
     elif sec == "breakdown":
         drums.add(PL.bar(n), KICK_SOFT, 0.7)
         drums.add(PL.bar(n, 2.5), KICK_SOFT, 0.35)
@@ -316,12 +316,15 @@ for cue in PL.SFX:
         sonic_logo(t, prm.get("short", True), prm.get("final", False))
     elif kind == "tape_stop":
         pass  # applied to the music bus below
-
-# typing clicks (same timings as the on-screen typing)
-for i, t in enumerate(PL.typing_times()):
-    ch = PL.SEARCH_TEXT[i]
-    sfx.add(t, I.type_click(1.25 if ch == " " else rng.uniform(0.85, 1.15)), 0.32 if ch != " " else 0.42,
-            p=rng.uniform(-0.3, 0.3))
+    elif kind == "brush":
+        sfx.add(t, I.brush_swish(prm.get("dur", 0.4), prm.get("bright", 1.0), prm.get("dir", 1), seed=abs(int(t * 100))), 0.5)
+    elif kind == "brush_big":
+        sfx.add(t, I.brush_swish(prm.get("dur", 0.5), 0.8, 1, seed=abs(int(t * 100))), 0.75)
+        sfx.add(t + 0.02, I.sub_hit(28, 0.7, glide_from=36, drive=1.3), 0.35)
+    elif kind == "air":
+        sfx.add(t, I.air(prm.get("dur", 0.7)), 0.35)
+    elif kind == "bell":
+        sfx.add(t, dsp.reverb(I.bell(prm["note"], 1.3, ratio=2.0, index=0.7), 1.8, 0.4), 0.26)
 
 # risers
 sfx.add(PL.bar(3, 3) - 0.40, I.riser(0.44, 800, 8000, tonal_note=64, amount=0.6), 0.5)

@@ -385,3 +385,30 @@ def hook_hit(note=40):
     out[:len(t_)] += t_ * 0.8
     out[:len(c)] += c * 0.5
     return reverb(out, 1.2, 0.25)
+
+
+def brush_swish(dur=0.4, bright=1.0, direction=1, seed=0):
+    """A loaded brush dragged across canvas: breathy band noise with bristle grain and a soft release."""
+    rng = np.random.default_rng(seed)
+    n = n_samples(dur + 0.12)
+    t = np.linspace(0, 1, n)
+    env = np.clip(t * (dur + 0.12) / 0.05, 0, 1) * np.clip((1 - t) * (dur + 0.12) / 0.12, 0, 1)
+    env *= 0.75 + 0.25 * np.sin(np.pi * np.clip(t * 1.1, 0, 1))
+    grain = butter(np.abs(rng.standard_normal(n)), 40, "lp", 1)
+    grain = 0.55 + 0.45 * grain / (np.abs(grain).max() + 1e-9)
+    body = svf(noise(n, "pink"), 1700 * bright + 900 * t, 0.7, "bp") * 1.6
+    hiss = butter(noise(n), 5200 * bright, "hp", 2) * 0.25
+    crackle = np.zeros(n)
+    hits = rng.random(n) < 90 / SR
+    crackle[hits] = rng.standard_normal(hits.sum())
+    crackle = svf(crackle, 3800, 2.0, "bp") * 0.5
+    s = (body + hiss) * grain * env + crackle * env
+    return pan(s, np.linspace(-0.35, 0.35, n) * direction) * 0.5
+
+
+def air(dur=0.7):
+    """Soft breath of air (a page turning slowly)."""
+    n = n_samples(dur)
+    t = np.linspace(0, 1, n)
+    s = butter(noise(n, "pink"), 1400, "lp", 2) * np.sin(np.pi * t) ** 2
+    return widen(pan(s, 0), 1.4) * 0.5

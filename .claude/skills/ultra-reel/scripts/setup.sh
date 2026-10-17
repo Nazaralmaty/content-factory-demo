@@ -17,5 +17,6 @@ command -v ffmpeg >/dev/null || { echo "ffmpeg is required"; exit 1; }
 mkdir -p "$FONTS"
 python3 "$HERE/get_fonts.py" "$FONTS" \
   "Oswald:wght@600;700" "Dela Gothic One" "Unbounded:wght@900" \
-  "Playfair Display:ital,wght@1,700" "JetBrains Mono:wght@500;800" "Montserrat:wght@500;700;900"
+  "Playfair Display:ital,wght@1,700" "JetBrains Mono:wght@500;800" "Montserrat:wght@500;700;900" \
+  "Cormorant Garamond:ital,wght@0,500;0,600;1,600" "Comforter Brush"
 echo "fonts in $FONTS  (export REEL_FONTS=$FONTS)"
