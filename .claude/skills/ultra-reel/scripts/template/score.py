@@ -1,4 +1,4 @@
-"""Procedural score + sound design + voice mix for the ICON testimonial reel.
+"""Procedural score + sound design (incl. a sound per illustration, by material) + voice mix for the ICON reel.
 
 python score.py <voice48k.wav> <f0.npz> <out_dir>
 """
@@ -10,7 +10,7 @@ import soundfile as sf
 from scipy import signal
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-sys.path.insert(0, os.environ.get("ULTRA_ENGINE", os.path.join(HERE, "..")))  # <skill>/scripts
+sys.path.insert(0, os.environ.get("ULTRA_ENGINE", os.path.join(HERE, "..", "ultra")))
 sys.path.insert(0, HERE)
 
 from engine import dsp, instruments as I, mix as M  # noqa: E402
@@ -323,6 +323,18 @@ for cue in PL.SFX:
         sfx.add(t + 0.02, I.sub_hit(28, 0.7, glide_from=36, drive=1.3), 0.35)
     elif kind == "air":
         sfx.add(t, I.air(prm.get("dur", 0.7)), 0.35)
+    elif kind == "wood":
+        sfx.add(t, dsp.reverb(I.wood(prm["note"]), 0.9, 0.18), 0.42)
+    elif kind == "glass":
+        sfx.add(t, I.glass(prm["note"]), 0.38)
+    elif kind == "metal":
+        sfx.add(t, dsp.reverb(I.metal(prm["note"]), 0.9, 0.2), 0.62)
+    elif kind == "thunk":
+        sfx.add(t, I.thunk(prm["note"]), 0.5)
+    elif kind == "clank":
+        sfx.add(t, I.clank(prm["note"]), 0.55)
+    elif kind == "paper":
+        sfx.add(t, I.paper(0.32, seed=abs(int(t * 100))), 0.95)
     elif kind == "bell":
         sfx.add(t, dsp.reverb(I.bell(prm["note"], 1.3, ratio=2.0, index=0.7), 1.8, 0.4), 0.26)
 

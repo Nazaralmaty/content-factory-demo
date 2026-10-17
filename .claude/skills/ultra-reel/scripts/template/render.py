@@ -1,8 +1,8 @@
-"""Painterly picture ("холст") for the ICON testimonial reel, driven by plan.py.
+"""Painterly picture ("холст") with ink-and-wash illustrations for the ICON testimonial, driven by plan.py.
 
-One continuous canvas, no cuts: the speaker node glides between layouts, words rise or are written
-by a brush, watercolor washes change the mood. Motion is eased and calm; nothing is drawn that the
-speaker did not say.
+One continuous canvas, no cuts: the speaker node glides between layouts and shrinks into a live card when a
+painted world takes the middle; illustrations land on their spoken words, words rise or are written by a brush,
+watercolor washes change the mood. Nothing is drawn that the speaker did not say.
 
 python render.py frames <out_dir> <t> [<t> ...]     -> PNG stills for QA
 python render.py range <k0> <k1> <out.mp4>          -> one worker's segment
@@ -18,23 +18,24 @@ import numpy as np
 import skia
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-sys.path.insert(0, os.environ.get("ULTRA_ENGINE", os.path.join(HERE, "..")))  # <skill>/scripts
+sys.path.insert(0, os.environ.get("ULTRA_ENGINE", os.path.join(HERE, "..", "ultra")))
 sys.path.insert(0, HERE)
 
 from engine import gfx as G  # noqa: E402
 from engine import paint as P  # noqa: E402
+from engine import illo as I  # noqa: E402
 from engine.gfx import prog, clamp01, ease_in_out, ease_out_cubic  # noqa: E402
 import plan as PL  # noqa: E402
 
 W, H, FPS = PL.W, PL.H, PL.FPS
-FONT_DIR = os.environ.get("REEL_FONTS", os.path.expanduser("~/.cache/ultra-reel/fonts"))
+FONT_DIR = os.environ.get("REEL_FONTS", os.path.join(HERE, "..", "fonts"))
 F = G.Fonts(FONT_DIR, {
     "serif": "CormorantGaramond-600.ttf", "serif_i": "CormorantGaramond-600i.ttf",
     "serif_wide": "CormorantGaramond-600.ttf", "serif_small": "CormorantGaramond-500.ttf",
     "brush": "ComforterBrush-400.ttf",
 })
 RGB = {"canvas": (241, 234, 223), "ink": (42, 39, 36), "terra": (185, 87, 62), "ochre": (201, 154, 62),
-       "dusk": (46, 59, 78), "cream": (243, 236, 224), "grey": (139, 132, 120)}
+       "dusk": (46, 59, 78), "cream": (243, 236, 224), "grey": (139, 132, 120), "slate": (70, 92, 120)}
 COL = {k: skia.Color4f(r / 255, g / 255, b / 255, 1) for k, (r, g, b) in RGB.items()}
 SPK = np.load(os.path.join(HERE, "speaker.npy"), mmap_mode="r")
 SRC = (4, 4, 396, 396)
@@ -124,7 +125,9 @@ def draw_speaker(c, t):
     cx, cy, r, zoom = layout_at(t)
     if r < 2:
         return cx, cy, r
-    groove = scene_index(t) not in (0, 15, 19) and not (PL.TAPE_STOP < t < 27.68)
+    i = scene_index(t)
+    groove = i > 0 and PL.SCENES[i][2] != "ochre" and not (PL.TAPE_STOP < t < 27.68) and \
+        not (PL.FINAL_STOP <= t < PL.TOP)
     r *= 1 + (0.007 * kick_env(t) if groove else 0.0)
     idx = int(min(len(SPK) - 1, max(0, round(t * FPS))))
     img = frame_image(idx)
@@ -169,7 +172,7 @@ def mood_dark(t):
     """0..1: how much a dark/strong wash covers the canvas now (decides cream vs ink)."""
     m = 0.0
     for w_ in PL.WASHES:
-        if w_[4] == "ochre" or w_[9] != "speaker":
+        if w_[4] == "ochre" or w_[7] < 1000:
             continue
         grow, fade = wash_alpha(t, w_)
         m = max(m, min(1.0, grow * 1.6) * fade)
@@ -202,10 +205,31 @@ def stroke_obj(i, cx=None, cy=None, r=None):
         elif kind == "line":
             pts = [(p["x0"], p["y"]), ((p["x0"] + p["x1"]) / 2, p["y"] - 9), (p["x1"], p["y"] + 6)]
             _STROKES[key] = P.Stroke(pts, p["w"], seed=p["seed"], dryness=0.6, taper=(0.08, 0.4))
-        elif kind == "check":
-            x, y, s = p["x"], p["y"], p["s"]
-            pts = [(x - 0.45 * s, y), (x - 0.12 * s, y + 0.34 * s), (x + 0.5 * s, y - 0.45 * s)]
-            _STROKES[key] = P.Stroke(pts, s * 0.2, seed=p["seed"], dryness=0.5, taper=(0.1, 0.35))
+        elif kind == "under":
+            x0, x1, base, size = text_geom(find_text(p["text"], t_in))
+            y = base + 0.17 * size
+            pts = [(x0 - 14, y + 4), ((x0 + x1) / 2, y - 5), (x1 + 18, y + 3)]
+            _STROKES[key] = P.Stroke(pts, max(13, size * 0.16), seed=p["seed"], dryness=0.6, taper=(0.08, 0.4))
+        elif kind == "ring":
+            x0, x1, base, size = text_geom(find_text(p["text"], t_in))
+            cx, cy = (x0 + x1) / 2, base - 0.3 * size
+            rx, ry = (x1 - x0) / 2 + 44, 0.52 * size + 30
+            rng = np.random.default_rng(p["seed"])
+            a = np.linspace(math.radians(-205), math.radians(170), 90)
+            k = np.linspace(1.04, 0.95, len(a)) * (1 + 0.012 * rng.standard_normal(len(a)).cumsum() / 6)
+            pts = list(zip(cx + rx * k * np.cos(a), cy + ry * k * np.sin(a) - np.linspace(0, 10, len(a))))
+            _STROKES[key] = P.Stroke(pts, 15, seed=p["seed"], dryness=0.55, taper=(0.06, 0.3), bristles=30)
+        elif kind == "arrow":
+            pts = p["pts"]
+            body = P.Stroke(pts, p["w"], seed=p["seed"], dryness=0.25, taper=(0.1, 0.12), depletion=0.1, core=0.85)
+            (xa, ya), (xb, yb) = pts[-2], pts[-1]
+            ang = math.atan2(yb - ya, xb - xa)
+            heads = []
+            for d, s_ in ((2.5, 1), (-2.5, 2)):
+                hx, hy = xb + 115 * math.cos(ang + d), yb + 115 * math.sin(ang + d)
+                heads.append(P.Stroke([(xb, yb), ((hx + xb) / 2, (hy + yb) / 2), (hx, hy)], p["w"] * 0.85,
+                                      seed=p["seed"] + s_, dryness=0.2, taper=(0.05, 0.3), depletion=0.1, core=0.85))
+            _STROKES[key] = (body, heads)
     return _STROKES[key]
 
 
@@ -231,8 +255,168 @@ def draw_strokes(c, t, cx, cy, r):
             else:
                 st.draw(c, COL[col], k, alpha=fade)
             c.restore()
+        elif kind == "arrow":
+            body, heads = st
+            kk = prog(t, t_in, dur * 1.35)
+            body.draw(c, COL[col], clamp01(kk / 0.78), alpha=fade)
+            for j, hd in enumerate(heads):
+                hd.draw(c, COL[col], ease_in_out(prog(kk, 0.76, 0.2)), alpha=fade)
         else:
             st.draw(c, COL[col], k, alpha=fade)
+
+
+# ------------------------------------------------------------------ illustrations
+SIGN_FONT = lambda s: F("serif_wide", s)  # noqa: E731
+BOOK_FONT = lambda s: F("serif", s)  # noqa: E731
+OBJECTS = {
+    "heart": lambda w: I.heart(w),
+    "fig_terra": lambda w: I.figure_one(w, "terra", seed=5),
+    "fig_terra_wave": lambda w: I.figure_one(w, "terra", seed=5, arm_l="wave"),
+    "fig_terra_wave_out": lambda w: I.figure_one(w, "terra", seed=5, arm_l="wave"),
+    "fig_terra_point": lambda w: I.figure_one(w, "terra", seed=5, arm_r="point"),
+    "fig_slate": lambda w: I.figure_one(w, "slate", seed=6, hair="side"),
+    "fig_slate_wave": lambda w: I.figure_one(w, "slate", seed=6, hair="side", arm_r="wave"),
+    "fig_slate_wave_out": lambda w: I.figure_one(w, "slate", seed=6, hair="side", arm_r="wave"),
+    "fig_slate_point": lambda w: I.figure_one(w, "slate", seed=6, hair="side", arm_l="point"),
+    "duo": lambda w: I.duo(w),
+    "duo_wave": lambda w: I.duo(w, ((None, "wave"), ("wave", None))),
+    "duo_pedestal": lambda w: I.duo_on_pedestal(w),
+    "sign_icon": lambda w: I.sign(w, "ICON", SIGN_FONT),
+    "book_blank": lambda w: I.book_open(w),
+    "book_written": lambda w: I.book_open(w, True, "Трафик", lambda s: F("serif_i", s)),
+    "book_plain": lambda w: I.book_closed(w, "Курс\nпо трафику", BOOK_FONT),
+    "book_sealed": lambda w: I.book_closed(w, "Курс\nпо трафику", BOOK_FONT, seal=True),
+    "cap": lambda w: I.cap(w), "stairs": lambda w: I.stairs(w), "sparkle": lambda w: I.sparkle(w),
+    "magnifier": lambda w: I.magnifier(w), "magnifier_duo": lambda w: I.magnifier_duo(w),
+    "toolbox": lambda w: I.toolbox(w), "wrench": lambda w: I.wrench(w), "gear": lambda w: I.gear(w),
+    "magnet": lambda w: I.magnet(w), "globe": lambda w: I.globe(w), "chart": lambda w: I.chart(w),
+    "pin": lambda w: I.pin(w),
+}
+_OBJ = {}
+
+
+def obj(key, w, rim):
+    """(image, bottom_px): the object painted once per worker; bottom_px = lowest painted row (feet)."""
+    k = (key, w, rim)
+    if k not in _OBJ:
+        img = OBJECTS[key](w)
+        if rim:
+            img = I.with_rim(img, r=max(5, int(w * 0.018)))
+        a = np.asarray(G.snapshot(img) if hasattr(img, "getCanvas") else img.toarray())[..., 3]
+        rows = np.where(a.max(axis=1) > 40)[0]
+        _OBJ[k] = (img, float(rows[-1]) if len(rows) else img.height())
+    return _OBJ[k]
+
+
+HOP = 0.24
+
+
+def world_push(t):
+    for a, b in PL.WORLDS:
+        if a <= t < b:
+            return 1 + 0.04 * ease_in_out(prog(t, a, b - a))
+    return 1.0
+
+
+def prop_pose(p, t):
+    """Position, scale, squash, rotation and alpha of a prop at time t (None = not on screen)."""
+    lead = 0.22 if p["anim"] == "drop" else 0.0
+    t0 = p["t"] - lead
+    if t < t0 or t > p["out"]:
+        return None
+    x, y = p["x"], p["y"]
+    s, sx, sy, rot, alpha, blur = 1.0, 1.0, 1.0, p["rot"], 1.0, 0.0
+    land = p["t"]
+    if p["hops"]:
+        kf = [(p["t"], p["x"], p["y"])] + p["hops"]
+        for (ta, xa, ya), (tb, xb, yb) in zip(kf, kf[1:]):
+            if t >= tb:
+                x, y, land = xb, yb, tb
+            elif t > tb - HOP:
+                u = (t - (tb - HOP)) / HOP
+                x = xa + (xb - xa) * ease_in_out(u)
+                y = ya + (yb - ya) * ease_in_out(u) - 90 * math.sin(math.pi * u)
+                sy, sx = 1.04, 0.97
+                break
+            else:
+                break
+    anim = p["anim"]
+    if anim == "pop":
+        k = prog(t, t0, 0.36)
+        s = 0.55 + 0.45 * G.ease_out_back(k)
+        alpha = clamp01(k * 3.5)
+        rot += -7 * (1 - ease_out_cubic(k))
+    elif anim == "drop":
+        u = prog(t, t0, lead)
+        y -= 320 * (1 - u * u)
+        alpha = clamp01(u * 4)
+    elif anim == "rise":
+        k = prog(t, t0, 0.5)
+        y += 90 * (1 - ease_out_cubic(k))
+        alpha = clamp01(k * 2)
+        blur = 9 * (1 - ease_out_cubic(k))
+    if anim in ("drop",) or p["hops"]:
+        dt = t - land
+        if 0 <= dt < 0.3:  # squash on landing
+            q = 0.09 * math.exp(-dt / 0.07) * math.cos(dt * 38)
+            sy *= 1 - q
+            sx *= 1 + q * 0.6
+    out = prog(t, p["out"] - 0.2, 0.2)
+    alpha *= 1 - out
+    s *= 1 - 0.06 * out
+    return x, y, s, sx, sy, rot, alpha, blur
+
+
+def draw_props(c, t):
+    z = world_push(t)
+    for i, p in enumerate(PL.PROPS):
+        pose = prop_pose(p, t)
+        if pose is None:
+            continue
+        x, y, s, sx, sy, rot, alpha, blur = pose
+        if alpha <= 0.003:
+            continue
+        # idle life: a slow bob and sway, never still
+        y += 2.5 * math.sin(2 * math.pi * 0.45 * t + i * 1.7)
+        rot += 0.7 * math.sin(2 * math.pi * 0.27 * t + i)
+        x, y, s = 540 + (x - 540) * z, 960 + (y - 960) * z, s * z
+        layers = [(p["key"], 1.0)]
+        pulse = 1.0
+        for ts, key in p["states"]:
+            if t >= ts:
+                u = prog(t, ts, 0.14)
+                layers = [(layers[-1][0], 1 - u), (key, u)] if u < 1 else [(key, 1.0)]
+                pulse = 1 + 0.08 * math.sin(math.pi * prog(t, ts, 0.26))
+        for key, la in layers:
+            img, bottom = obj(key, p["w"], p["rim"])
+            iw, ih = img.width(), img.height()
+            ay = bottom if p["anchor"] == "bottom" else ih / 2
+            c.save()
+            c.translate(x, y)
+            if p["shadow"] and p["anchor"] == "bottom" and la == layers[-1][1]:
+                sp = G.paint(skia.Color4f(0.35, 0.27, 0.2, 0.17 * alpha))
+                sp.setMaskFilter(skia.MaskFilter.MakeBlur(skia.kNormal_BlurStyle, 9))
+                c.drawOval(skia.Rect.MakeLTRB(-iw * 0.36 * s, -12, iw * 0.36 * s, 12), sp)
+            c.rotate(rot)
+            c.scale(s * sx * pulse, s * sy * pulse)
+            lp = skia.Paint()
+            lp.setAlphaf(alpha * la)
+            if blur > 0.3:
+                lp.setImageFilter(skia.ImageFilters.Blur(blur, blur))
+            c.saveLayer(None, lp)
+            c.drawImage(img, -iw / 2, -ay, G.CUBIC)
+            if p["anim"] == "paint":  # the wash is laid in left to right with a soft wet front
+                k = ease_in_out(prog(t, p["t"], 0.55))
+                if k < 1:
+                    fe = iw * 0.22
+                    front = -iw / 2 - fe + (iw + 2 * fe) * k
+                    sh = skia.GradientShader.MakeLinear([skia.Point(front - fe, 0), skia.Point(front, 0)],
+                                                        [skia.ColorWHITE, skia.ColorTRANSPARENT])
+                    mp = skia.Paint(Shader=sh)
+                    mp.setBlendMode(skia.BlendMode.kDstIn)
+                    c.drawRect(skia.Rect.MakeLTRB(-iw, -ih * 2, iw, ih * 2), mp)
+            c.restore()
+            c.restore()
 
 
 # ------------------------------------------------------------------ text
@@ -270,17 +454,49 @@ def line_groups():
 LINE_POS = line_groups()
 
 
+LABEL_W = 600
+
+
+def text_font(i):
+    t_in, t_out, kind, text, font, size, x, y, col = PL.TEXT[i]
+    if kind == "label":
+        f = F(font, size)
+        w = G.text_width(text, f, TRACK.get(font, 0.0))
+        return F(font, size * LABEL_W / w) if w > LABEL_W else f
+    return fitted(font, size, text)
+
+
+def text_geom(i):
+    """(x0, x1, baseline, size) of a TEXT item as drawn."""
+    t_in, t_out, kind, text, font, size, x, y, col = PL.TEXT[i]
+    f = text_font(i)
+    w = G.text_width(text, f, TRACK.get(font, 0.0))
+    if i in LINE_POS:
+        x0 = LINE_POS[i]
+    elif kind == "label" or x < 0 or (kind == "brush" and x != 540):
+        x0 = x
+    else:
+        x0 = x - w / 2
+    return x0, x0 + w, y, f.getSize()
+
+
+def find_text(s, t):
+    cands = [i for i, it in enumerate(PL.TEXT) if it[3] == s and it[0] <= t + 1.0 and it[1] >= t]
+    assert cands, s
+    return cands[0]
+
+
 def draw_texts(c, t):
     for i, (t_in, t_out, kind, text, font, size, x, y, col) in enumerate(PL.TEXT):
         if t < t_in or t > t_out:
             continue
-        f = fitted(font, size, text)
+        f = text_font(i)
         color = text_color(col, t)
         fo = 0.2
         out = prog(t, t_out - fo, fo)
-        align = "left" if x < 0 or (kind == "brush" and x != 540) else "center"
+        align = "left" if x < 0 or kind == "label" or (kind == "brush" and x != 540) else "center"
         xx = LINE_POS.get(i, x)
-        if kind == "rise":
+        if kind in ("rise", "label"):
             k = prog(t, t_in, 0.55)
             c.save()
             c.translate(0, -16 * ease_in_out(out))
@@ -304,7 +520,7 @@ def draw_dots(c, t, cx, cy, r):
         t0 = PL.WORDS[wi]["s"]
         if t < t0:
             continue
-        ang = -math.pi * 0.95 + DOT_POS[k, 0] * math.pi * 1.9
+        ang = -math.pi * 1.12 + DOT_POS[k, 0] * math.pi * 1.24
         rr = r + 70 + DOT_POS[k, 1] * 70
         x, y = cx + math.cos(ang) * rr, cy + math.sin(ang) * rr * 0.95
         s = 0.35 + 0.45 * DOT_POS[k, 2]
@@ -323,6 +539,7 @@ def draw_frame(t):
     draw_washes(c, t, cx, cy)
     draw_halo(c, t, cx, cy, r)
     draw_dots(c, t, cx, cy, r)
+    draw_props(c, t)
     cx, cy, r = draw_speaker(c, t)
     draw_strokes(c, t, cx, cy, r)
     draw_texts(c, t)

@@ -412,3 +412,75 @@ def air(dur=0.7):
     t = np.linspace(0, 1, n)
     s = butter(noise(n, "pink"), 1400, "lp", 2) * np.sin(np.pi * t) ** 2
     return widen(pan(s, 0), 1.4) * 0.5
+
+
+# ------------------------------------------------------------------ materials (abat: a sound by what lands)
+def _modes(f0, ratios, decays, amps, dur):
+    n = n_samples(dur)
+    out = np.zeros(n)
+    for r, d, a in zip(ratios, decays, amps):
+        out += sine(f0 * r, n) * env_exp(n, d, 0.0004) * a
+    return out
+
+
+def wood(note=72, decay=0.16):
+    """Marimba / wooden block: struck bar modes (1 : 3.9 : 9.2), a soft mallet click."""
+    f = mtof(note)
+    body = _modes(f, (1.0, 3.93, 9.24), (decay, decay * 0.35, decay * 0.12), (1.0, 0.32, 0.1), decay * 4)
+    n = len(body)
+    click = svf(noise(n_samples(0.012)), min(f * 6, 9000), 1.5, "bp") * env_exp(n_samples(0.012), 0.002)
+    body[:len(click)] += click * 0.25
+    return body * 0.6
+
+
+def glass(note=91, decay=0.5):
+    """A light tap on glass: thin inharmonic partials, long ring."""
+    f = mtof(note)
+    s = _modes(f, (1.0, 2.32, 4.25, 6.63), (decay, decay * 0.6, decay * 0.35, decay * 0.2), (1.0, 0.5, 0.25, 0.12),
+               decay * 3)
+    return reverb(s * 0.35, 1.4, 0.3)
+
+
+def metal(note=84, decay=0.35):
+    """A small tool set down: bright, slightly detuned partials and a hard click."""
+    f = mtof(note)
+    s = _modes(f, (1.0, 2.76, 5.40, 8.93), (decay, decay * 0.5, decay * 0.3, decay * 0.18), (1.0, 0.6, 0.35, 0.2),
+               decay * 3)
+    s += _modes(f * 1.012, (1.0, 2.71), (decay * 0.8, decay * 0.4), (0.5, 0.3), decay * 3)
+    n = n_samples(0.01)
+    s[:n] += svf(noise(n), 6000, 1.0, "bp") * env_exp(n, 0.0015) * 0.6
+    return s * 0.35
+
+
+def thunk(note=50):
+    """Wood landing on wood (a sign, a cap): low knock + short boxy noise."""
+    n = n_samples(0.35)
+    t = np.arange(n) / SR
+    f = mtof(note) * (1 + 0.6 * np.exp(-t / 0.012))
+    knock = sine(f, n) * env_exp(n, 0.07)
+    box = svf(noise(n), mtof(note) * 4, 2.0, "bp") * env_exp(n, 0.03)
+    return softclip(knock * 1.2 + box * 0.8, 1.1) * 0.6
+
+
+def clank(note=45):
+    """A metal box set down: thud + loose rattle of what is inside."""
+    out = thunk(note) * 1.1
+    rng = np.random.default_rng(note)
+    for k in range(4):
+        m = metal(note + 36 + int(rng.integers(-3, 5)), 0.12)
+        i = n_samples(0.015 + 0.03 * k + rng.uniform(0, 0.01))
+        seg = m[: len(out) - i]
+        out[i:i + len(seg)] += seg * (0.5 - 0.08 * k)
+    return out
+
+
+def paper(dur=0.32, seed=0):
+    """A page lifted and laid: rustle bursts with flutter."""
+    rng = np.random.default_rng(seed)
+    n = n_samples(dur)
+    t = np.linspace(0, 1, n)
+    flutter = np.clip(np.sin(2 * np.pi * (14 + 6 * t) * t * dur) * 0.5 + 0.5, 0, 1) ** 2
+    s = svf(noise(n), 3200 + 1600 * t, 0.9, "bp") * flutter * np.sin(np.pi * t) ** 0.8
+    s += butter(noise(n), 6500, "hp", 2) * 0.15 * np.sin(np.pi * t)
+    s *= 0.8 + 0.2 * rng.random()
+    return pan(s, 0.2) * 0.55
