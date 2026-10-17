@@ -249,8 +249,8 @@ PROPS = [
     # face: sparkles on "классного"
     prop(w(105) + 0.03, 37.72, "sparkle", 100, 880, 1060, snd=("bell", {"note": 88})),
     prop(w(105) + 0.18, 37.72, "sparkle", 70, 205, 1000, snd=("bell", {"note": 91})),
-    # world 6: the sign on "классные", the duo under it on "подрядчики", the arrow on "идите к ним"
-    prop(w(110), 40.56, "sign_icon", 380, 700, 690, anim="drop", rim=True, snd=("thunk", {"note": 52})),
+    # world 6: the sign on "нужны", the duo under it on "подрядчики", the arrow on "идите к ним"
+    prop(w(109), 40.56, "sign_icon", 380, 700, 690, anim="drop", rim=True, snd=("thunk", {"note": 52})),
     prop(w(111), 40.56, "duo_wave", 330, 700, 1215, anchor="bottom", rim=True, snd=("wood", {"note": 76})),
     # final: the duo on a pedestal rises in the silence before "топ."
     prop(w(115) - 0.02, 42.36, "duo_pedestal", 360, 540, 1010, anim="rise", rim=True, snd=("air", {"dur": 0.45})),
